@@ -1,6 +1,7 @@
 import discord
 import asyncio
 import praw
+import prawcore
 import codecs
 
 client = discord.Client()
@@ -12,8 +13,6 @@ async def on_ready():
     print(client.user.name)
     print(client.user.id)
     print('------')
-
-#note: write command to lookup user by reddit username when using bot account
 
 @client.event
 async def on_message(message):
@@ -32,12 +31,17 @@ async def on_message(message):
 				embed.add_field(name="Minimum Comments Required", value="Minimum comments required for verification is currently " + str(mincomments) + ".", inline=False)
 				await client.send_message(message.channel, embed=embed)
 		elif message.content.startswith("%adduserpair"):
+			embed=discord.Embed(title="CMHOC Clerk")
 			tmp = message.content.split(" ")[2]
 			tmp2 = message.mentions[0]
-			with codecs.open("users.txt", "a") as file:
-				file.write(tmp2.id + "=" + tmp + "\r\n")
-			embed=discord.Embed(title="CMHOC Clerk")
-			embed.add_field(name="Userpair Database", value="✅ User " + tmp2.name + " added under reddit name " + tmp + ".", inline=False)
+			if(len(message.content.split(" ")) == 4):
+				with codecs.open("users.txt", "a") as file:
+					file.write(tmp2.id + "=" + tmp + "=" + format(int(message.content.split(" ")[3]), "#010b") + "\r\n")
+					embed.add_field(name="Userpair Database", value="✅ User " + tmp2.name + " added under reddit name " + tmp + " with perm matrix " + format(int(message.content.split(" ")[3]), "#010b") + " .", inline=False)
+			else: 
+				with codecs.open("users.txt", "a") as file:
+					file.write(tmp2.id + "=" + tmp + "=" + format(0, "#010b") + "\r\n")
+					embed.add_field(name="Userpair Database", value="✅ User " + tmp2.name + " added under reddit name " + tmp + " with perm matrix " + format(0, "#010b") + " .", inline=False)
 			await client.send_message(message.channel, embed=embed)
 			
 def startBot(cid, secret, password, username, token):
@@ -46,8 +50,21 @@ def startBot(cid, secret, password, username, token):
 	client.run(token)
 	
 async def verifyUser(user, message):
-			tmp2 = reddit.redditor(name=user)
-			counter = 0
+	try:
+		tmp2 = reddit.redditor(name=user)
+		counter = 0
+		embed=discord.Embed(title="CMHOC Clerk")
+		for x in tmp2.comments.new(limit=None):
+			if(x.subreddit.display_name == "cmhoc"):
+				counter += 1
+		if(counter >= 25):
+			embed.add_field(name="Verification Tool", value="✅ User " + user + " verified.", inline=False)
+		else:
+			embed.add_field(name="Verification Tool", value="❌ User " + user + " not verified.", inline=False)
+		await client.send_message(message.channel, embed=embed)
+	except prawcore.NotFound as e:
+		embed.add_field(name="Command Failed", value="❌ User " + user + " does not exist on Reddit (or is shadowbanned.)")
+		await client.send_message(message.channel, embed=embed)
 			embed=discord.Embed(title="CMHOC Clerk")
 			for x in tmp2.comments.new(limit=None):
 				if(x.subreddit.display_name == "cmhoc"):
