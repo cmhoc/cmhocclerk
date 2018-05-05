@@ -16,33 +16,32 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
-	if message.author.id == "174827375639396352":
-		if message.content.startswith('%verify'):
-			await verifyUser(message.content.split(" ")[1], message)
-		elif message.content.startswith("%mincomments"):
-			embed=discord.Embed(title="CMHOC Clerk")
-			tmp = message.content.split(" ")[1]
-			if(tmp != "current"):
-				global mincomments
-				mincomments = tmp
-				embed.add_field(name="Minimum Comments Required", value="✅ Minimum comments required for verification is now " + str(tmp) + ".", inline=False)
-				await client.send_message(message.channel, embed=embed)
-			else:
-				embed.add_field(name="Minimum Comments Required", value="Minimum comments required for verification is currently " + str(mincomments) + ".", inline=False)
-				await client.send_message(message.channel, embed=embed)
-		elif message.content.startswith("%adduserpair"):
-			embed=discord.Embed(title="CMHOC Clerk")
-			tmp = message.content.split(" ")[2]
-			tmp2 = message.mentions[0]
-			if(len(message.content.split(" ")) == 4):
-				with codecs.open("users.txt", "a") as file:
-					file.write(tmp2.id + "=" + tmp + "=" + format(int(message.content.split(" ")[3]), "#010b") + "\r\n")
-					embed.add_field(name="Userpair Database", value="✅ User " + tmp2.name + " added under reddit name " + tmp + " with perm matrix " + format(int(message.content.split(" ")[3]), "#010b") + " .", inline=False)
-			else: 
-				with codecs.open("users.txt", "a") as file:
-					file.write(tmp2.id + "=" + tmp + "=" + format(0, "#010b") + "\r\n")
-					embed.add_field(name="Userpair Database", value="✅ User " + tmp2.name + " added under reddit name " + tmp + " with perm matrix " + format(0, "#010b") + " .", inline=False)
+	if message.content.startswith('%verify'):
+		await verifyUser(message.content.split(" ")[1], message)
+	elif message.content.startswith("%mincomments"):
+		embed=discord.Embed(title="CMHOC Clerk")
+		tmp = message.content.split(" ")[1]
+		if(tmp != "current"):
+			global mincomments
+			mincomments = tmp
+			embed.add_field(name="Minimum Comments Required", value="✅ Minimum comments required for verification is now " + str(tmp) + ".", inline=False)
 			await client.send_message(message.channel, embed=embed)
+		else:
+			embed.add_field(name="Minimum Comments Required", value="Minimum comments required for verification is currently " + str(mincomments) + ".", inline=False)
+			await client.send_message(message.channel, embed=embed)
+	elif message.content.startswith("%adduserpair"):
+		embed=discord.Embed(title="CMHOC Clerk")
+		tmp = message.content.split(" ")[2]
+		tmp2 = message.mentions[0]
+		if(len(message.content.split(" ")) == 4):
+			with codecs.open("users.txt", "a") as file:
+				file.write(tmp2.id + "=" + tmp + "=" + format(int(message.content.split(" ")[3]), "#010b") + "\r\n")
+				embed.add_field(name="Userpair Database", value="✅ User " + tmp2.name + " added under reddit name " + tmp + " with perm matrix " + format(int(message.content.split(" ")[3]), "#010b") + " .", inline=False)
+		else: 
+			with codecs.open("users.txt", "a") as file:
+				file.write(tmp2.id + "=" + tmp + "=" + format(0, "#010b") + "\r\n")
+				embed.add_field(name="Userpair Database", value="✅ User " + tmp2.name + " added under reddit name " + tmp + " with perm matrix " + format(0, "#010b") + " .", inline=False)
+		await client.send_message(message.channel, embed=embed)
 			
 def startBot(cid, secret, password, username, token):
 	global reddit
