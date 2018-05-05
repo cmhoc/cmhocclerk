@@ -4,7 +4,7 @@ import praw
 import codecs
 
 client = discord.Client()
-reddit = praw.Reddit(client_id="client_id", client_secret="client_secret", password="password", user_agent="CMHOC Clerk Prototype", username="username")
+reddit = ""
 mincomments = 25
 @client.event
 async def on_ready():
@@ -40,14 +40,24 @@ async def on_message(message):
 			embed.add_field(name="Userpair Database", value="✅ User " + tmp2.name + " added under reddit name " + tmp + ".", inline=False)
 			await client.send_message(message.channel, embed=embed)
 			
-def startBot():
-	client.run("email", "password")
+def startBot(cid, secret, password, username, token):
+	global reddit
+	reddit = praw.Reddit(client_id=cid, client_secret=secret, password=password, user_agent="CMHOC Clerk Prototype", username=username)
+	client.run(token)
 	
 async def verifyUser(user, message):
 			tmp2 = reddit.redditor(name=user)
 			counter = 0
 			embed=discord.Embed(title="CMHOC Clerk")
 			for x in tmp2.comments.new(limit=None):
+				if(x.subreddit.display_name == "cmhoc"):
+					counter += 1
+			if(counter >= 25):
+					embed.add_field(name="Verification Tool", value="✅ User " + user + " verified.", inline=False)
+			else:
+					embed.add_field(name="Verification Tool", value="❌ User " + user + " not verified.", inline=False)
+			await client.send_message(message.channel, embed=embed)
+
 				if(x.subreddit.display_name == "cmhoc"):
 					counter += 1
 			if(counter >= 25):
