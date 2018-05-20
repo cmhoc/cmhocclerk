@@ -124,4 +124,4 @@ async def countVotes(submission, message):
 			for k, v in votedict["Unknown Votes"].items():
 				if(k != "AutoModerator"):
 					embed.add_field(name=k, value=v)
-		await client.send_message(message.channel, embed=embed)
+			await client.send_message(message.channel, embed=embed)
