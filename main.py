@@ -3,9 +3,8 @@ import asyncio
 import praw
 import prawcore
 import codecs
-from discord.ext import commands
-from discord.ext.commands import Bot
-bot = commands.Bot(command_prefix="%")
+import re
+
 client = discord.Client()
 reddit = ""
 mincomments = 25
@@ -14,7 +13,6 @@ async def on_ready():
     print('Logged in as')
     print(client.user.name)
     print(client.user.id)
-	print('I need poutine')
     print('------')
 
 @client.event
@@ -45,6 +43,16 @@ async def on_message(message):
 				file.write(tmp2.id + "=" + tmp + "=" + format(0, "#010b") + "\r\n")
 				embed.add_field(name="Userpair Database", value="✅ User " + tmp2.name + " added under reddit name " + tmp + " with perm matrix " + format(0, "#010b") + " .", inline=False)
 		await client.send_message(message.channel, embed=embed)
+	elif message.content.startswith("%checkvotes"):
+		embed=discord.Embed(title="CMHOC Clerk")
+		tmp = message.content.split(" ")[1]
+		print(tmp)
+		try:
+			submission = reddit.submission(url=tmp)
+			await countVotes(submission, message)
+		except Exception as e:
+			embed.add_field(name="Command Failed", value=e.value + " " + e.args, inline=False)
+			await client.send_message(message.channel, embed=embed)				
 			
 def startBot(cid, secret, password, username, token):
 	global reddit
@@ -67,29 +75,53 @@ async def verifyUser(user, message):
 	except prawcore.NotFound as e:
 		embed.add_field(name="Command Failed", value="❌ User " + user + " does not exist on Reddit (or is shadowbanned.)")
 		await client.send_message(message.channel, embed=embed)
+
+async def checkPermissions(user, permrequired):
+	if(permrequired == "777"):
+		with codecs.open("superusers.txt", "r") as file:
+			if(user in file.readlines()):
+				return True
+			else:
+				return False
+	else:
+		with codecs.open("superusers.txt", "r") as file:
+			if(user in file.readlines()):
+				return True
+			else:
+				return False
+		with codecs.open("users.txt", "r") as file:
+			userperms = [line for line in file.readlines() if user in line]
+			perms = userperms.split("=")[3]
+			if(int(perms, 2) & int(permrequired, 2) >= int(permrequired, 2)):
+				return True
+			else:
+				return False	
+
+async def countVotes(submission, message):
+	embed=discord.Embed(title="CMHOC Clerk")
+	votedict = {"Bills": [x.replace("Y", "").replace(": ", "") for x in re.findall("([CSM]\-\d\d:\sY)", submission.selftext)], "Unknown Votes": {}}
+	for x in [x.replace("Y", "").replace(": ", "") for x in re.findall("([CSM]\-\d\d:\sY)", submission.selftext)]:
+		votedict[x] = {"Yea": 0, "Nay": 0, "Abstain": 0}
+	for x in re.findall("((C|S|M)-(\d+):\s)([Yy]ea|[Nn]ay|[Aa]bstain|[Oo]ui|[Nn]on|[Aa]bstention)", "".join([y for y in [x.body.replace("\n", "") for x in submission.comments] if not re.match("^P", y)])):
+		if(x[0].replace(": ", "") in votedict["Bills"]):
+			if(x[3] in ["Yea", "yea", "Oui", "oui"]):
+				votedict[x[0].replace(": ", "")]["Yea"] += 1
+			elif(x[3] in ["Nay", "nay", "Non", "non"]):
+				votedict[x[0].replace(": ", "")]["Nay"] += 1
+			elif(x[3] in ["Abstain", "abstain", "Abstention", "abstention"]):
+				votedict[x[0].replace(": ", "")]["Abstain"] += 1
+	for x in submission.comments:
+		if(re.search("((C|S|M)-(\d+):\s)([Yy]ea|[Nn]ay|[Aa]bstain|[Oo]ui|[Nn]on|[Aa]bstention)", x.body) is None):
+			votedict["Unknown Votes"][x.author.name] = x.body
+	for x in votedict["Bills"]:
+		embed.add_field(name=x, value=x + ": " + str(votedict[x]["Yea"]) + " Yea, " + str(votedict[x]["Nay"]) + " Nay, " + str(votedict[x]["Abstain"]) + " Abstentions", inline=False)
+	if(len(votedict["Unknown Votes"]) > 1):
+		embed.add_field(name="Unknown Votes Detected", value="Unknown votes have been found. To view them, type %viewunknowns.")
+		await client.send_message(message.channel, embed=embed)
+		msg = await client.wait_for_message(timeout=15, author=message.author, content="%viewunknowns")
+		if(msg is not None):
 			embed=discord.Embed(title="CMHOC Clerk")
-			for x in tmp2.comments.new(limit=None):
-				if(x.subreddit.display_name == "cmhoc"):
-					counter += 1
-			if(counter >= 25):
-					embed.add_field(name="Verification Tool", value="✅ User " + user + " verified.", inline=False)
-			else:
-					embed.add_field(name="Verification Tool", value="❌ User " + user + " not verified.", inline=False)
-			await client.send_message(message.channel, embed=embed)
-
-				if(x.subreddit.display_name == "cmhoc"):
-					counter += 1
-			if(counter >= 25):
-					embed.add_field(name="Verification Tool", value="✅ User " + user + " verified.", inline=False)
-			else:
-					embed.add_field(name="Verification Tool", value="❌ User " + user + " not verified.", inline=False)
-			await client.send_message(message.channel, embed=embed)
-
-bot.command(pass_context=true)
-async def wikipedia(ctx,*,args):
-	    if args=="help":
-        embed=discord.Embed(title="the Wikipedia Function",color=0xe198ff)
-        embed=add_field(name="How to wiki",value="Just type the word you want to search after $wikipedia.",inline=True)
-        await bot.say(embed=embed)
-    else:
-        await bot.say("http://wikipedia.org/wiki/"+args.replace(" ","_"))
+			for k, v in votedict["Unknown Votes"].items():
+				if(k != "AutoModerator"):
+					embed.add_field(name=k, value=v)
+		await client.send_message(message.channel, embed=embed)
