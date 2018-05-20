@@ -3,7 +3,9 @@ import asyncio
 import praw
 import prawcore
 import codecs
-
+from discord.ext import commands
+from discord.ext.commands import Bot
+bot = commands.Bot(command_prefix="%")
 client = discord.Client()
 reddit = ""
 mincomments = 25
@@ -82,3 +84,12 @@ async def verifyUser(user, message):
 			else:
 					embed.add_field(name="Verification Tool", value="❌ User " + user + " not verified.", inline=False)
 			await client.send_message(message.channel, embed=embed)
+
+bot.command(pass_context=true)
+async def wikipedia(ctx,*,args):
+	    if args=="help":
+        embed=discord.Embed(title="the Wikipedia Function",color=0xe198ff)
+        embed=add_field(name="How to wiki",value="Just type the word you want to search after $wikipedia.",inline=True)
+        await bot.say(embed=embed)
+    else:
+        await bot.say("http://wikipedia.org/wiki/"+args.replace(" ","_"))
